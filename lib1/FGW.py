@@ -113,6 +113,7 @@ def init_matrix(C1,C2,T,p,q,loss_fun='square_loss'):
                     q.reshape(1, -1),
                     f2(C2).T
                     )
+    
      #%% also suitable for partial coupling (marginals of T does not sum up to 1) from Liu 2023
     # ## By definition, but same results as above 
     # ## T matrix is also the input of this function

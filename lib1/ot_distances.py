@@ -272,9 +272,12 @@ class Fused_Gromov_Wasserstein_distance():
         def node_scoring_function(str1, str2):
             set1 = set(str1)
             set2 = set(str2)
-            intersection = len(set1.intersection(set2))
-            union = len(set1.union(set2))
-            return 1.0 - intersection / union
+            if set1 == set2:
+                return 0
+            else:
+                intersection = len(set1.intersection(set2))
+                union = len(set1.union(set2))
+                return 1.0 - intersection / union
 
         if gofeature : 
             M=np.zeros((C1.shape[0],C2.shape[0])) # initialization

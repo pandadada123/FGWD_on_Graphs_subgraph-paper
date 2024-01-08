@@ -13,9 +13,6 @@ os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 import numpy as np
 
-# sys.path.append(os.path.realpath('../lib'))
-# sys.path.append(os.path.realpath('E:/Master Thesis/FGWD_on_Graphs_subgraph/lib1'))
-
 from lib1.graph import graph_colors, draw_rel, draw_transp, Graph, wl_labeling
 import random
 import ot
@@ -45,12 +42,12 @@ N = 5  # nodes in query
 # NN3 = [20,50,100,200,300,400,500]
 # NN3 = [20,50,100,500,1000,2000,3000]
 # NN3 = [50, 100, 1000, 3000, 5000, 7000, 10000]
-NN3 = [100, 1000, 3000, 5000, 7000, 10000]
+# NN3 = [100, 1000, 3000, 5000, 7000, 10000]
 # # NN3 = [10000]
 # NN3 = [15,20,25]
 # NN3 = [15,45,75]
 # N3 = N+N2
-# N3 = 45
+N3 = 4000
 # NN3 = [45]
 # Pw = np.linspace(0.1, 1, 10)
 # Pw = np.linspace(0.01, 0.1, 10)
@@ -70,12 +67,16 @@ pw1 = d / (N-1)
 # Sigma2=[0.01]
 # sigma1=0.1
 # sigma2=0.1
-numfea = 100
+numfea = 20
 # NumFea = list(range(1, 20))  # from 1 to 20
 # NumFea = [x for x in range(2, 41, 2)]
 # NumFea = [2]
 
 # Alpha = np.linspace(0, 1, 11)
+# Alpha = [0.5]
+# Alpha = [1e-11, 1e-05, 1e-02]
+alpha1 = 0
+alpha2 = 0.5
 
 # Dia = [i for i in range(1, N)]
 
@@ -85,28 +86,28 @@ thre1 = 1e-9
 # thre2=-0.015000 # entropic
 thre2 = 1e-2
 thre3 = 0.05
-epsilon = thre1
+
+epsilon = 1 # WD=1 for noisy case
         
 Is_fig = 0
 Is_info = 0
-Is_fea_noise = 0
+Is_fea_noise = 1
 Is_str_noise = 0
 
-Num = 1 # number of repeats (generate a random graph and a query)
-fea_metric = 'dirac'
+Num = 500 # number of repeats (generate a random graph and a query)
+# fea_metric = 'dirac'
 # fea_metric = 'hamming'
-# fea_metric = 'sqeuclidean'
+fea_metric = 'sqeuclidean'
 # fea_metric = 'jaccard'
 # str_metric = 'shortest_path'  # remember to change lib0 and cost matrix
 str_metric = 'adj'
 loss_fun='square_loss'
 # loss_fun = 'kl_loss'
 
-alpha1 = 0
-alpha2 = 0.5
+mean_fea = 0 # mean of Gaussian 
+# std_fea = 0.1 # std of Gaussian
+STD_FEA = np.arange(0, 0.5, 0.05).tolist()
 
-mean_fea = 0
-std_fea = 0
 str_mean = 0
 str_std = 0
 
@@ -142,25 +143,6 @@ def bootstrap_mean_confidence_interval(data, num_bootstraps=1000, alpha=0.05):
 
     return lower_bound, upper_bound
 
-# %% build fully connected graph
-def build_fully_graph(N=30, numfea=3):
-    # v=mu+sigma*np.random.randn(N);
-    # v=np.int_(np.floor(v)) # discrete attributes
-    g = Graph()
-    g.add_nodes(list(range(N)))
-    # Fea = np.linspace(0,20,numfea)
-    Fea = list(range(0, numfea))
-    for i in range(N):
-        # g.add_one_attribute(i,v[i])
-        # g.add_one_attribute(i,2)
-        fea = random.choice(Fea)
-        g.add_one_attribute(i, fea)
-        for j in range(i+1, N):
-            if j != i:
-                g.add_edge((i, j))
-
-    return g
-
 # %% build comunity graphs with different assortivity
 # pw is the possibility that one edge is connected
 def build_comunity_graph(N=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
@@ -171,12 +153,14 @@ def build_comunity_graph(N=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
         # v=mu+sigma*np.random.randn(N);
         # v=np.int_(np.floor(v)) # discrete attributes
         # Fea = np.linspace(0,20,numfea)
-        Fea = list(range(0, numfea))
+        # Fea = list(range(0, numfea))
+        Fea = [i / (numfea - 1) for i in range(numfea)]
         for i in range(N):
             # g.add_one_attribute(i,v[i])
             fea = random.choice(Fea)
             g.add_one_attribute(i, fea)
-            for j in range(i+1, N):
+            for j in range(i,N): # include the possibility of self-loop 
+            # for j in range(i+1, N):
                 if j != i:
                     r = np.random.rand()
                     if r < pw:
@@ -190,43 +174,14 @@ def build_comunity_graph(N=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
             random_string = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(random_length))
             fea = random_string
             g.add_one_attribute(i, fea)
-            for j in range(i+1, N):
+            for j in range(i,N): # include the possibility of self-loop 
+            # for j in range(i+1, N):
                 if j != i:
                     r = np.random.rand()
                     if r < pw:
                         g.add_edge((i, j))
     
     return g
-
-#%%
-def build_line_graph(N=30, numfea=3, fea_metric= 'dirac'):
-    g = Graph()
-    g.add_nodes(list(range(N)))
-    
-    if fea_metric == 'dirac':
-        # v=mu+sigma*np.random.randn(N);
-        # v=np.int_(np.floor(v)) # discrete attributes
-        # Fea = np.linspace(0,20,numfea)
-        Fea = list(range(0, numfea))
-        for i in range(N):
-            # g.add_one_attribute(i,v[i])
-            fea = random.choice(Fea)
-            g.add_one_attribute(i, fea)
-        for i in range(N-1):
-            g.add_edge((i, i+1))
-    
-    return g
-
-# %% merge community graphs
-def merge_graph(g1, g2):  # inputs are nx_graph
-    gprime = nx.Graph(g1)
-    N0 = len(gprime.nodes())
-    g2relabel = nx.relabel_nodes(g2, lambda x: x + N0)
-    gprime.add_nodes_from(g2relabel.nodes(data=True))
-    gprime.add_edges_from(g2relabel.edges(data=True))
-    gprime.add_edge(N0-1, N0)
-
-    return gprime
 
 # %% build random graph G1
 def build_G1(G, N2=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
@@ -240,7 +195,8 @@ def build_G1(G, N2=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
     NN = N2+L  # total number of nodes in test graph
     
     if fea_metric == 'dirac' or fea_metric == 'sqeuclidean':
-        Fea = list(range(0, numfea))
+        # Fea = list(range(0, numfea))
+        Fea = [i / (numfea - 1) for i in range(numfea)]
         for i in range(L, NN):
             # G.add_one_attribute(i,v[i-L])
             fea = random.choice(Fea)
@@ -257,7 +213,9 @@ def build_G1(G, N2=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
 
 
     for i in range(NN):
-        for j in range(i+1, NN):
+        # for j in range(i+1, NN):
+        for j in range(i, NN): # include the possibility of self-loop 
+            # if j not in range(L):  # no additional edge within the subgraph
             if j != i and j not in range(L):  # no additional edge within the subgraph
             # if j != i and j not in range(L) and j not in G.nx_graph._adj[i].keys():
                 r = np.random.rand()  # uniform betweeen [0,1)
@@ -266,6 +224,66 @@ def build_G1(G, N2=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
 
     return G
     
+#%% add noise to the query
+def add_noise_to_query(g_clean,fea_metric,
+                       mean_fea,std_fea,str_mean,str_std,
+                       Is_fea_noise,Is_str_noise):    
+    
+    g = copy.deepcopy(g_clean)
+                
+    if Is_fea_noise:  # Add label noise
+        # Randomly pick one node
+        random_node = random.choice(list(g.nodes()))
+
+        if fea_metric == 'jaccard':
+            current_string = g.nodes[random_node]['attr_name']
+            # Convert the input string to a list of Unicode code points
+            code_points = [ord(char) for char in current_string]
+        
+            # Apply Gaussian noise to each code point
+            noisy_code_points = [
+                int(round(code + np.random.normal(mean_fea, std_fea)))
+                for code in code_points
+            ]
+        
+            # Ensure that code points are within valid Unicode range (32 to 126)
+            noisy_code_points = [
+                min(max(code, 32), 126)
+                for code in noisy_code_points
+            ]
+        
+            # Convert the noisy code points back to a string
+            noisy_string = ''.join([chr(code) for code in noisy_code_points])
+            
+            g.nodes[random_node]['attr_name'] = noisy_string
+    
+        elif fea_metric == 'dirac' or fea_metric == 'sqeuclidean':
+            current_value = g.nodes[random_node]['attr_name']
+            noise = np.random.normal(mean_fea, std_fea)
+            new_value = current_value + noise
+            # g.nodes[random_node]['attr_name'] = round(new_value)  # still int value
+            g.nodes[random_node]['attr_name'] = new_value
+        
+    if Is_str_noise: # Add structural noise
+        # Generate random values for edge insertions and deletions
+        num_insertions = max(0, int(np.random.normal(str_mean/2, str_std)))
+        num_deletions = max(0, int(np.random.normal(str_mean/2, str_std)))
+        
+        # Structural noise: Edge insertions
+        for _ in range(num_insertions):
+            node1, node2 = random.sample(g.nodes(), 2)
+            if not g.has_edge(node1, node2):
+                g.add_edge(node1, node2)
+        
+        # Structural noise: Edge deletions
+        for _ in range(num_deletions):
+            edges = list(g.edges())
+            if edges:
+                edge_to_delete = random.choice(edges)
+                g.remove_edge(*edge_to_delete)
+                
+    return g
+
 # %%
 DFGW_set = []
 Percent1 = []
@@ -278,7 +296,7 @@ STD = []
 Lower = []
 Upper = []
 
-for N3 in NN3:
+for std_fea in STD_FEA:
     num = 0
 
     #%% save data for all iterations
@@ -324,11 +342,18 @@ for N3 in NN3:
         G1 = build_G1(G12, N2=N2, numfea=numfea, pw=pw2, fea_metric=fea_metric)
 
         # %% G1 is the test graph and G2_nodummy is the query graph
-        G2_nodummy = copy.deepcopy(G11)
+        G2_nodummy_clean = copy.deepcopy(G11)
         # G2_nodummy=build_fully_graph(N=25,mu=mu1,sigma=0.3)
         
         g1 = G1.nx_graph
-        g2_nodummy = G2_nodummy.nx_graph
+        g2_nodummy_clean = G2_nodummy_clean.nx_graph
+        
+        #%% add noise to query
+        if Is_fea_noise or Is_str_noise:
+            g2_nodummy = add_noise_to_query(g2_nodummy_clean, fea_metric=fea_metric, mean_fea = mean_fea, std_fea = std_fea, str_mean= str_mean, str_std= str_std,
+                                   Is_fea_noise=Is_fea_noise, Is_str_noise=Is_str_noise)            
+        
+        G2_nodummy = Graph(g2_nodummy)
         
         #%% only allow the query is connected
         is_connected = nx.is_connected(g2_nodummy)
@@ -398,6 +423,8 @@ for N3 in NN3:
         dw_sliding_list = []
         dfgw_sliding_list  = []
         transp_FGWD_sliding_list = []
+        C1_sliding_list = []
+        C2_sliding_list = []
         
         ii=0
         sliding_time = 0
@@ -507,12 +534,15 @@ for N3 in NN3:
             
             g1_sliding_list.append(g1_sliding)                   
             G1_sliding_list.append(G1_sliding)
-                
+            
             # keep an record of the successful dfgw and transp
                            
             dfgw_sliding_list.append(dfgw)
             
             transp_FGWD_sliding_list.append(transp_FGWD)
+            
+            C1_sliding_list.append(C1)
+            C2_sliding_list.append(C2)
             
             sliding_time += end_time - start_time 
             
@@ -553,6 +583,9 @@ for N3 in NN3:
         g1_sliding_min = g1_sliding_list[min_index]      
         G1_sliding_min = G1_sliding_list[min_index]      
         dw_sliding_min = dw_sliding_list[min_index]
+        
+        C1_sliding_min = C1_sliding_list[min_index]
+        C2_sliding_min = C2_sliding_list[min_index]
         
         print("FGWD", dgfw_sliding_min)
         # print("transp", transp_FGWD_sliding_min)
@@ -656,7 +689,7 @@ for N3 in NN3:
             
             return True
         
-        if check_transp(transp_FGWD_sliding_min, g1_sliding_min, g2_nodummy, Is_info):
+        if check_transp(transp_FGWD_sliding_min, g1_sliding_min, g2_nodummy_clean, Is_info):
             print("These two graphs are the same.")
             # yes+=1
             index3.append(1)
@@ -740,9 +773,9 @@ for N3 in NN3:
 # ax.boxplot(DFGW_set, showfliers=False, showmeans=False)
 # %% plot mean and STD
 plt.figure()
-plt.plot(np.array(NN3), np.array(Mean), 'b-+')
+plt.plot(np.array(STD_FEA), np.array(Mean), 'b-+')
 # plt.fill_between(np.array(NumFea), np.array(Mean)-np.array(STD), np.array(Mean)+np.array(STD), alpha=0.5) # alpha here is transparency
-plt.fill_between(np.array(NN3), np.array(Lower), np.array(Upper), facecolor = 'b',alpha=0.5) # NumFea here is transparency
+plt.fill_between(np.array(STD_FEA), np.array(Lower), np.array(Upper), facecolor = 'b',alpha=0.5) # NumFea here is transparency
 plt.grid()
 plt.xlabel('Size of test graph')
 # plt.xlabel('Number of features')
@@ -754,10 +787,10 @@ plt.ylabel('Mean and 95% confidence interval')
 
 # %% plot percentage
 plt.figure()
-plt.plot(np.array(NN3), np.array(Percent1),'-x', color = 'tab:green', label='m='+str(N)+', nFGWD <'+str(thre1))
+plt.plot(np.array(STD_FEA), np.array(Percent1),'-x', color = 'tab:green', label='m='+str(N)+', nFGWD <'+str(thre1))
 # plt.plot(np.array(NumFea), np.array(Percent2),'r--.', label='FGWD < ' +str(thre2) +'(approx match)')
-plt.plot(np.array(NN3), np.array(Percent4),'--.', color = 'tab:orange', label='m='+str(N)+', nFGWD < ' +str(thre3) )
-plt.plot(np.array(NN3), np.array(Percent3),'-+', color = 'b', label='exact matching')
+plt.plot(np.array(STD_FEA), np.array(Percent4),'--.', color = 'tab:orange', label='m='+str(N)+', nFGWD < ' +str(thre3) )
+plt.plot(np.array(STD_FEA), np.array(Percent3),'-+', color = 'b', label='exact matching')
 plt.grid()
 plt.legend()
 plt.xlabel('Size of test graph')
@@ -770,7 +803,7 @@ plt.ylabel('Success rate')
 
 # %% plot time
 plt.figure()
-plt.plot(np.array(NN3), np.array(Time),'b-+')
+plt.plot(np.array(STD_FEA), np.array(Time),'b-+')
 plt.grid()
 plt.xlabel('Size of test graph')
 # plt.xlabel('Number of features')

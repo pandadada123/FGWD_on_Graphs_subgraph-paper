@@ -14,8 +14,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 import numpy as np
 
 # sys.path.append(os.path.realpath('../lib'))
-# sys.path.append(os.path.realpath('E:/Master Thesis/FGWD_on_Graphs_subgraph/lib1'))
-# sys.path.append(os.path.realpath('C:/Users/Thinkpad/Desktop/temp/lib1'))
+# sys.path.append(os.path.realpath('E:/Master Thesis/FGWD_on_Graphs_subgraph/lib1')) current results
 
 from lib1.graph import graph_colors, draw_rel, draw_transp, Graph, wl_labeling
 import random
@@ -39,10 +38,9 @@ import time
 stopThr = 1e-9
 
 thre1 = stopThr
-# thre2=-0.015000 # entropic
-thre2 = stopThr
+thre2 = 0.05 # results not recorded
 
-epsilon = 1e-1
+epsilon = 0.1  # threshold for the WD
         
 Is_fig = 0
 Is_info = 0
@@ -54,19 +52,19 @@ Is_create_query_deter = 0
 # Is_check_transp = 1
 
 N = 6 # nodes in query
-Is_fea_noise = 0 # for adding noise to query
-Is_str_noise = 0
+# Is_fea_noise = 0 # for adding noise to query
+# Is_str_noise = 0
 
 mean_fea = 1 # number of nodes that has been changed
-std_fea = 0.1 # zero mean Gaussian
+std_fea = 1 # zero mean Gaussian
 # str_mean = 0
 # str_std = 0.1
 
-Num = 1 # number of random graphs
+# Num = 1 # number of random graphs
 # fea_metric = 'dirac'
 # fea_metric = 'hamming'
-fea_metric = 'sqeuclidean'
-# fea_metric = 'jaccard'
+# fea_metric = 'sqeuclidean'
+fea_metric = 'jaccard'
 # str_metric = 'shortest_path'  # remember to change lib0 and cost matrix
 str_metric = 'adj'
 
@@ -88,17 +86,22 @@ Upper = []
 # dataset_n='ptc'   # color is not a tuple
 # dataset_n='cox2'
 # dataset_n='bzr'
-dataset_n ='firstmm'
+# dataset_n ='firstmm'
+
 
 # dataset_name = 'BZR'
-dataset_name = 'FIRSTMM_DB'
+# dataset_name = 'FIRSTMM_DB'
+dataset_name = 'deezer_europe'
+# dataset_name = 'lastfm_asia'
 
 # path='/home/pan/dataset/data/'
 path='E:/Master Thesis/dataset/data/'
 # X is consisted of graph objects
-X,label=load_local_data(path,dataset_n,wl=0) # using the "wl" option that computes the Weisfeler-Lehman features for each nodes as shown is the notebook wl_labeling.ipynb
+# X,label=load_local_data(path,dataset_n,wl=0) # using the "wl" option that computes the Weisfeler-Lehman features for each nodes as shown is the notebook wl_labeling.ipynb
 # we do not use WL labeling 
 # x=X[2]
+X = np.load('E:/Master Thesis/dataset/data/'+dataset_name+'/X_deezer.npy', allow_pickle=True)
+# X = np.load('E:/Master Thesis/dataset/data/'+dataset_name+'/X_lastfm.npy', allow_pickle=True)
 
 plt.close("all")
 
@@ -107,69 +110,6 @@ NumQ_for_each_graph = 10
 NumG = len(X) # Number of graphs
 # NumQ = NumG # Number of query graphs
 # NumQ = 1
-
-#%% add noise to the query
-def add_noise_to_query(g,mean_fea,std_fea,str_mean,str_std,
-                       Is_fea_noise,Is_str_noise):    
-    if Is_fea_noise: # Add label noise
-        selected_nodes = random.sample(g.nodes(), mean_fea)
-        
-        if fea_metric == 'jaccard':
-            for node in selected_nodes:
-                current_string = g.nodes[node]['attr_name']
-                # Convert the input string to a list of Unicode code points
-                code_points = [ord(char) for char in current_string]
-            
-                # Apply Gaussian noise to each code point
-                noisy_code_points = [
-                    int(round(code + np.random.normal(0, std_fea)))
-                    for code in code_points
-                ]
-            
-                # Ensure that code points are within valid Unicode range (32 to 126)
-                noisy_code_points = [
-                    min(max(code, 32), 126)
-                    for code in noisy_code_points
-                ]
-            
-                # Convert the noisy code points back to a string
-                noisy_string = ''.join([chr(code) for code in noisy_code_points])
-                
-                g.nodes[node]['attr_name'] = noisy_string
-
-        elif fea_metric == 'dirac':
-            for node in selected_nodes:
-                current_value = g.nodes[node]['attr_name']
-                noise = np.random.normal(0, std_fea)
-                new_value = current_value + noise
-                g.nodes[node]['attr_name'] = round(new_value)  # still int value
-        
-        elif fea_metric == 'sqeuclidean': # real value
-            for node in selected_nodes:
-                current_value = g.nodes[node]['attr_name']
-                noise = [np.random.normal(0, std_fea) for _ in range(len(current_value))]
-                new_value = [x + y for x, y in zip(current_value, noise)]
-                g.nodes[node]['attr_name'] = new_value  
-                
-    if Is_str_noise: # Add structural noise
-        # Generate random values for edge insertions and deletions
-        num_insertions = max(0, int(np.random.normal(str_mean/2, str_std)))
-        num_deletions = max(0, int(np.random.normal(str_mean/2, str_std)))
-        
-        # Structural noise: Edge insertions
-        for _ in range(num_insertions):
-            node1, node2 = random.sample(g.nodes(), 2)
-            if not g.has_edge(node1, node2):
-                g.add_edge(node1, node2)
-        
-        # Structural noise: Edge deletions
-        for _ in range(num_deletions):
-            edges = list(g.edges())
-            if edges:
-                edge_to_delete = random.choice(edges)
-                g.remove_edge(*edge_to_delete)
-                
-    return g
 
 #%% create connected subgraphs/query graphs
 
@@ -374,9 +314,8 @@ for num in range(NumG):
             # plt.title('GWD coupling')
             # draw_transp(G1,G2,transp_GWD,shiftx=2,shifty=0.5,thresh=thresh,swipy=True,swipx=False,with_labels=True,vmin=vmin,vmax=vmax)
             # plt.show()
+            
             #%% Wasserstein filtering
-            # epsilon = thre2
-            # epsilon = thre2
             # alpha = 0
             dw, log_WD, transp_WD, M, C1, C2  = Fused_Gromov_Wasserstein_distance(
                 alpha=alpha1, features_metric=fea_metric, method=str_metric, loss_fun='square_loss').graph_d(G1_subgraph, G2, p1, p2, p2_nodummy, stopThr=stopThr)
@@ -393,6 +332,7 @@ for num in range(NumG):
                 alpha=alpha2, features_metric=fea_metric, method=str_metric, loss_fun='square_loss').graph_d(G1_subgraph, G2, p1, p2, p2_nodummy, stopThr=stopThr)
             
             end_time = time.time()
+            
             #%% results from all sliding subgraphs
             dfgw_sub.append(dfgw)
             transp_FGWD_sub.append(transp_FGWD)

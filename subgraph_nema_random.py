@@ -172,11 +172,12 @@ N = 5  # nodes in query
 # NN3 = [15,20,25,35,45,55,65,75,85,95]
 # NN3 = [15]
 # NN3 = [20,50,100,200,300,400,500]
-NN3 = [50, 100, 1000, 3000, 5000, 7000, 10000]
+# NN3 = [50, 100, 1000, 3000, 5000, 7000, 10000]
+# NN3 = [20,50,100,500,1000,2000,3000]
 # NN3 = [15,20,25]
 # NN3 = [15,45,75]
 # N3 = N+N2
-# N3 = 45
+N3 = 4000
 # NN3 = [45]
 # Pw = np.linspace(0.1, 1, 10)
 # Pw = np.linspace(0.01, 0.1, 10)
@@ -189,10 +190,9 @@ deg = 3
 # Pw2 = [deg / (N3-1) for deg in Deg]
 # Pw = [0.1]
 # pw1 = 0.5 # query
-# pw1 = d / (N-1)
+pw1 = d / (N-1)
 # pw1 = np.random.choice(np.linspace(0.1, 1, 10))
 # pw2 = 0.5 # target
-# pw1 = deg / (N-1)
 # pw2 = deg / (N3-1)
 # Sigma2=[0.01,0.1,0.5,1,2,3,4]
 # Sigma2=[0.01]
@@ -215,13 +215,13 @@ epsilon = thre1
         
 Is_fig = 0
 Is_info = 0
-Is_fea_noise = 0
+Is_fea_noise = 1
 Is_str_noise = 0
 
-Num = 10 # number of repeats (generate a random graph and a query)
-fea_metric = 'dirac'
+Num = 500  # number of repeats (generate a random graph and a query)
+# fea_metric = 'dirac'
 # fea_metric = 'hamming'
-# fea_metric = 'sqeuclidean'
+fea_metric = 'sqeuclidean'
 # fea_metric = 'jaccard'
 # str_metric = 'shortest_path'  # remember to change lib0 and cost matrix
 str_metric = 'adj'
@@ -231,39 +231,12 @@ loss_fun='square_loss'
 alpha1 = 0
 alpha2 = 0.5
 
-mean_fea = 0
-std_fea = 0
+mean_fea = 0 # mean of Gaussian 
+# std_fea = 0.1 # std of Gaussian
+STD_FEA = np.arange(0, 0.5, 0.05).tolist()
+
 str_mean = 0
 str_std = 0
-
-# %% build star graph
-def build_star_graph():
-    g = Graph()
-    g.add_attributes({0: 0, 1: 3, 2: 5, 3: 7})    # add color to nodes
-    g.add_edge((0, 1))
-    g.add_edge((1, 2))
-    g.add_edge((1, 3))
-
-    return g
-
-# %% build fully connected graph
-def build_fully_graph(N=30, numfea=3):
-    # v=mu+sigma*np.random.randn(N);
-    # v=np.int_(np.floor(v)) # discrete attributes
-    g = Graph()
-    g.add_nodes(list(range(N)))
-    # Fea = np.linspace(0,20,numfea)
-    Fea = list(range(0, numfea))
-    for i in range(N):
-        # g.add_one_attribute(i,v[i])
-        # g.add_one_attribute(i,2)
-        fea = random.choice(Fea)
-        g.add_one_attribute(i, fea)
-        for j in range(i+1, N):
-            if j != i:
-                g.add_edge((i, j))
-
-    return g
 
 # %% build comunity graphs with different assortivity
 # pw is the possibility that one edge is connected
@@ -275,12 +248,14 @@ def build_comunity_graph(N=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
         # v=mu+sigma*np.random.randn(N);
         # v=np.int_(np.floor(v)) # discrete attributes
         # Fea = np.linspace(0,20,numfea)
-        Fea = list(range(0, numfea))
+        # Fea = list(range(0, numfea))
+        Fea = [i / (numfea - 1) for i in range(numfea)]
         for i in range(N):
             # g.add_one_attribute(i,v[i])
             fea = random.choice(Fea)
             g.add_one_attribute(i, fea)
-            for j in range(i+1, N):
+            for j in range(i,N): # include the possibility of self-loop 
+            # for j in range(i+1, N):
                 if j != i:
                     r = np.random.rand()
                     if r < pw:
@@ -294,41 +269,14 @@ def build_comunity_graph(N=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
             random_string = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(random_length))
             fea = random_string
             g.add_one_attribute(i, fea)
-            for j in range(i+1, N):
+            for j in range(i,N): # include the possibility of self-loop 
+            # for j in range(i+1, N):
                 if j != i:
                     r = np.random.rand()
                     if r < pw:
                         g.add_edge((i, j))
     
     return g
-
-def build_line_graph(N=30, numfea=3, fea_metric= 'dirac'):
-    g = Graph()
-    g.add_nodes(list(range(N)))
-    
-    if fea_metric == 'dirac':
-        # v=mu+sigma*np.random.randn(N);
-        # v=np.int_(np.floor(v)) # discrete attributes
-        # Fea = np.linspace(0,20,numfea)
-        Fea = list(range(0, numfea))
-        for i in range(N):
-            # g.add_one_attribute(i,v[i])
-            fea = random.choice(Fea)
-            g.add_one_attribute(i, fea)
-        for i in range(N-1):
-            g.add_edge((i, i+1))
-    
-    return g
-# %% merge community graphs
-def merge_graph(g1, g2):  # inputs are nx_graph
-    gprime = nx.Graph(g1)
-    N0 = len(gprime.nodes())
-    g2relabel = nx.relabel_nodes(g2, lambda x: x + N0)
-    gprime.add_nodes_from(g2relabel.nodes(data=True))
-    gprime.add_edges_from(g2relabel.edges(data=True))
-    gprime.add_edge(N0-1, N0)
-
-    return gprime
 
 # %% build random graph G1
 def build_G1(G, N2=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
@@ -342,7 +290,8 @@ def build_G1(G, N2=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
     NN = N2+L  # total number of nodes in test graph
     
     if fea_metric == 'dirac' or fea_metric == 'sqeuclidean':
-        Fea = list(range(0, numfea))
+        # Fea = list(range(0, numfea))
+        Fea = [i / (numfea - 1) for i in range(numfea)]
         for i in range(L, NN):
             # G.add_one_attribute(i,v[i-L])
             fea = random.choice(Fea)
@@ -359,7 +308,9 @@ def build_G1(G, N2=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
 
 
     for i in range(NN):
-        for j in range(i+1, NN):
+        # for j in range(i+1, NN):
+        for j in range(i, NN): # include the possibility of self-loop 
+            # if j not in range(L):  # no additional edge within the subgraph
             if j != i and j not in range(L):  # no additional edge within the subgraph
             # if j != i and j not in range(L) and j not in G.nx_graph._adj[i].keys():
                 r = np.random.rand()  # uniform betweeen [0,1)
@@ -369,40 +320,45 @@ def build_G1(G, N2=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
     return G
 
 #%% add noise to the query
-def add_noise_to_query(g,fea_metric,
+def add_noise_to_query(g_clean,fea_metric,
                        mean_fea,std_fea,str_mean,str_std,
                        Is_fea_noise,Is_str_noise):    
-    if Is_fea_noise: # Add label noise
-        if fea_metric == 'jaccard':
-            for node in g.nodes():
-                current_string = g.nodes[node]['attr_name']
-                # Convert the input string to a list of Unicode code points
-                code_points = [ord(char) for char in current_string]
-            
-                # Apply Gaussian noise to each code point
-                noisy_code_points = [
-                    int(round(code + np.random.normal(mean_fea, std_fea)))
-                    for code in code_points
-                ]
-            
-                # Ensure that code points are within valid Unicode range (32 to 126)
-                noisy_code_points = [
-                    min(max(code, 32), 126)
-                    for code in noisy_code_points
-                ]
-            
-                # Convert the noisy code points back to a string
-                noisy_string = ''.join([chr(code) for code in noisy_code_points])
+    
+    g = copy.deepcopy(g_clean)
                 
-                g.nodes[node]['attr_name'] = noisy_string
+    if Is_fea_noise:  # Add label noise
+        # Randomly pick one node
+        random_node = random.choice(list(g.nodes()))
 
-        elif fea_metric == 'dirac' or fea_metric == 'sqeuclidean':
-            for node in g.nodes():
-                current_value = g.nodes[node]['attr_name']
-                noise = np.random.normal(mean_fea, std_fea)
-                new_value = current_value + noise
-                g.nodes[node]['attr_name'] = round(new_value)  # still int value
+        if fea_metric == 'jaccard':
+            current_string = g.nodes[random_node]['attr_name']
+            # Convert the input string to a list of Unicode code points
+            code_points = [ord(char) for char in current_string]
+        
+            # Apply Gaussian noise to each code point
+            noisy_code_points = [
+                int(round(code + np.random.normal(mean_fea, std_fea)))
+                for code in code_points
+            ]
+        
+            # Ensure that code points are within valid Unicode range (32 to 126)
+            noisy_code_points = [
+                min(max(code, 32), 126)
+                for code in noisy_code_points
+            ]
+        
+            # Convert the noisy code points back to a string
+            noisy_string = ''.join([chr(code) for code in noisy_code_points])
             
+            g.nodes[random_node]['attr_name'] = noisy_string
+    
+        elif fea_metric == 'dirac' or fea_metric == 'sqeuclidean':
+            current_value = g.nodes[random_node]['attr_name']
+            noise = np.random.normal(mean_fea, std_fea)
+            new_value = current_value + noise
+            # g.nodes[random_node]['attr_name'] = round(new_value)  # still int value
+            g.nodes[random_node]['attr_name'] = new_value
+        
     if Is_str_noise: # Add structural noise
         # Generate random values for edge insertions and deletions
         num_insertions = max(0, int(np.random.normal(str_mean/2, str_std)))
@@ -423,13 +379,12 @@ def add_noise_to_query(g,fea_metric,
                 
     return g
 
-
 Is_create_query = 0
 
-mean_fea = 1 # number of nodes that has been changed
-std_fea = 0.5 # zero mean Gaussian
-str_mean = 0
-str_std = 0.1
+# mean_fea = 1 # number of nodes that has been changed
+# std_fea = 0.5 # zero mean Gaussian
+# str_mean = 0
+# str_std = 0.1
 # Generate a random string of given length
 def random_string(length):
     letters = string.ascii_lowercase
@@ -440,7 +395,7 @@ def random_string(length):
 # target_labels = query_labels + [random.choice(query_labels) for _ in range(100-5)]
 # target_labels = ['guardians', 'groot', 'star', 'guardians2']
 
-Eps = 1e-9
+Eps = 1 # set as 1 for noisy case 
 
 # missing_files_count = 0
 # Cost = np.zeros(NumQ)
@@ -457,9 +412,10 @@ Index_set = []
 Rate_exact_set = []
 Cost_set = []
 Rate1_subopt_set = []
+Rate2_subopt_set = []
 Rate3_subopt_set = []
 
-for N3 in NN3:
+for std_fea in STD_FEA:
     
     num = 0
     
@@ -479,10 +435,10 @@ for N3 in NN3:
         
         # %% build G1
         # pw1=0.1
-        # G11 = build_comunity_graph(N=N, numfea=numfea, pw=pw1, fea_metric=fea_metric)
+        G11 = build_comunity_graph(N=N, numfea=numfea, pw=pw1, fea_metric=fea_metric)
         
         # build line graph for query
-        G11 = build_line_graph(N=N, numfea=numfea, fea_metric=fea_metric)
+        # G11 = build_line_graph(N=N, numfea=numfea, fea_metric=fea_metric)
         
         # np.random.seed()  # different graph G1 every time
         G12 = copy.deepcopy(G11)  # initialize with subgraph
@@ -495,16 +451,15 @@ for N3 in NN3:
         pw2 = deg / (N3-1)
         G1 = build_G1(G12, N2=N2, numfea=numfea, pw=pw2, fea_metric=fea_metric)
     
-        # %% G1 is the test graph and G2_nodummy is the query graph
-        G2_nodummy = copy.deepcopy(G11)
-        # G2_nodummy=build_fully_graph(N=25,mu=mu1,sigma=0.3)
-        
+        #%% G1 is the test graph and G2_nodummy is the query graph
+        G2_nodummy_clean = copy.deepcopy(G11) 
+        # G2_nodummy=build_fully_graph(N=25,mu=mu1,sigma=0.3)        
         g1 = G1.nx_graph
-        g2_nodummy = G2_nodummy.nx_graph
+        g2_nodummy_clean = G2_nodummy_clean.nx_graph
         
         #%% add noise to query
         if Is_fea_noise or Is_str_noise:
-            g2_nodummy = add_noise_to_query(g2_nodummy, fea_metric=fea_metric, mean_fea = mean_fea, std_fea = std_fea, str_mean= str_mean, str_std= str_std,
+            g2_nodummy = add_noise_to_query(g2_nodummy_clean, fea_metric=fea_metric, mean_fea = mean_fea, std_fea = std_fea, str_mean= str_mean, str_std= str_std,
                                    Is_fea_noise=Is_fea_noise, Is_str_noise=Is_str_noise)            
         
         G2_nodummy = Graph(g2_nodummy)
@@ -674,7 +629,8 @@ for N3 in NN3:
                 if f1.shape != f2.shape:
                     return 0
                 else: 
-                    return 1/(1+np.sum([pow(f1-f2 ,2)]))
+                    # return 1/(1+np.sum([pow(f1-f2 ,2)]))
+                    return 1/(1+np.sum([(f1-f2)**2]))
             
             elif fea_metric == 'dirac':
                 if f1 == f2:
@@ -765,7 +721,7 @@ for N3 in NN3:
         # In[10]:
         
         
-        with fornax.Connection('sqlite:///mydb2.sqlite') as conn:
+        with fornax.Connection('sqlite:///mydb5.sqlite') as conn:
             target_graph = fornax.GraphHandle.create(conn)
             target_graph.add_nodes(
                 # use id_src to set a custom id on each node 
@@ -776,8 +732,9 @@ for N3 in NN3:
                 target_type=nodes_df['target_type']
                 # meta data must be json serialisable
             )
-            target_graph.add_edges(edges_df['start'], edges_df['end'])
             
+            target_graph.add_edges(edges_df['start'], edges_df['end'])
+
             # target_graph.graph_id = None
             
         # We can use the `graph_id` to access our graph in the future.
@@ -785,7 +742,7 @@ for N3 in NN3:
         # In[11]:
         
         
-        with fornax.Connection('sqlite:///mydb2.sqlite') as conn:
+        with fornax.Connection('sqlite:///mydb5.sqlite') as conn:
             target_graph.graph_id
             another_target_graph_handle = fornax.GraphHandle.read(conn, target_graph.graph_id)
             print(another_target_graph_handle == target_graph)
@@ -800,7 +757,7 @@ for N3 in NN3:
         # In[12]:
         
         
-        with fornax.Connection('sqlite:///mydb2.sqlite') as conn:
+        with fornax.Connection('sqlite:///mydb5.sqlite') as conn:
             # create a new graph
             query_graph = fornax.GraphHandle.create(conn)
         
@@ -849,7 +806,7 @@ for N3 in NN3:
         # In[13]:
         
         
-        with fornax.Connection('sqlite:///mydb2.sqlite') as conn:
+        with fornax.Connection('sqlite:///mydb5.sqlite') as conn:
             query = fornax.QueryHandle.create(conn, query_graph, target_graph)
             query.add_matches(matches['query_id'], matches['target_id'], matches['score'])
             
@@ -862,7 +819,7 @@ for N3 in NN3:
         # In[14]:
         
         
-        with fornax.Connection('sqlite:///mydb2.sqlite') as conn:
+        with fornax.Connection('sqlite:///mydb5.sqlite') as conn:
             
             start_time = time.time()
             results = query.execute(n=1, hopping_distance=1)  # top-n results
@@ -971,7 +928,7 @@ for N3 in NN3:
             nx.set_node_attributes(g3, labels_B, 'attr_name')
             
             # Check if the two graphs are isomorphic considering node labels
-            Is_isomorphic = nx.is_isomorphic(g3, g2_nodummy, node_match=lambda n1, n2: n1['attr_name'] == n2['attr_name'])
+            Is_isomorphic = nx.is_isomorphic(g3, g2_nodummy_clean, node_match=lambda n1, n2: n1['attr_name'] == n2['attr_name'])
             
             print(Is_isomorphic)  # True or False
 
@@ -1004,9 +961,9 @@ for N3 in NN3:
         Time_total[num] = Time_execute[num] + Time_match[num]
         Time_total_2[num] = results['time_total'] + Time_match[num]
         print('time_total', Time_total[num])
-        print('time_total_2', Time_total_2[num])
+        print('time_total_2', Time_total_2[num]) # new time calculation in execute 
         
-        with fornax.Connection('sqlite:///mydb2.sqlite') as conn:  # introduce connection first 
+        with fornax.Connection('sqlite:///mydb5.sqlite') as conn:  # introduce connection first 
             # cursor = conn.cursor()
             
             # cursor.execute('DELETE FROM graphs')
@@ -1015,11 +972,33 @@ for N3 in NN3:
             query_graph.delete()
             # fornax.conn.close()    
             # conn.commit()
+            # table_names = ["graph","query","match","node","edge"]
             sql_statement = text(f'DELETE FROM match;')
             conn.session.execute(sql_statement)
             conn.session.commit()
             
             conn.close()
+        
+        # table_names = ["graph", "query", "match", "node", "edge"]
+
+
+        # try:
+        #     with fornax.Connection('sqlite:///mydb5.sqlite') as conn:
+        #         # Optionally, delete the target_graph and query_graph if they are defined
+        #         # target_graph.delete()
+        #         # query_graph.delete()
+        
+        #         # Loop through each table and delete all records
+        #         for table in table_names:
+        #             sql_statement = text(f"DELETE FROM {table};")
+        #             conn.session.execute(sql_statement)
+        
+        #         # Commit the changes to the database
+        #         conn.session.commit()
+        
+        # except Exception as e:
+        #     print(f"An error occurred: {e}")
+        #     # Handle other errors as needed
             
         #%%
         num += 1 
@@ -1033,17 +1012,23 @@ for N3 in NN3:
     Rate_exact = sum(Index)/Num
     print('rate exact', Rate_exact)
     
-    Rate_exact_set.append(Rate_exact)
+    Rate_exact_set.append(Rate_exact) # rate of exact matching is found.
     
     Cost_set.append(np.mean(Cost / N))
     
-    index1 = [index for index, value in enumerate(Cost / N) if value < thre1]
+    index1 = [index for index, value in enumerate(Cost / N) if value < thre1] # cost is almost zero 
     Rate1_subopt = len(index1) / Num
     Rate1_subopt_set.append(Rate1_subopt)
     
-    index3 = [index for index, value in enumerate(Cost / N) if value < thre3]
+    index2 = [index for index, value in enumerate(Cost / N) if value < thre2] # cost under thre2
+    Rate2_subopt = len(index2) / Num
+    Rate2_subopt_set.append(Rate2_subopt)
+    
+    index3 = [index for index, value in enumerate(Cost / N) if value < thre3] # cost under thre3
     Rate3_subopt = len(index3) / Num
     Rate3_subopt_set.append(Rate3_subopt)
+    
+    Percent_set = [Rate1_subopt_set, Rate2_subopt_set, Rate_exact_set, Rate3_subopt_set] # almost zero + thre2 + exact + thre3
     
 #%% 
 # file_path_1 = "E:/Master Thesis/results/nema/Ratio.npy"
