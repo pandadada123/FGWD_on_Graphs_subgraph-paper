@@ -41,13 +41,13 @@ N = 5  # nodes in query
 # NN3 = [15,20,25,35,45,55,65,75,85,95]
 # NN3 = [20,50,100,200,300,400,500]
 # NN3 = [20,50,100,500,1000,2000,3000]
-# NN3 = [50, 100, 1000, 3000, 5000, 7000, 10000]
+NN3 = [50, 100, 300, 500, 700, 1000, 3000, 5000, 7000, 10000]
 # NN3 = [100, 1000, 3000, 5000, 7000, 10000]
-# # NN3 = [10000]
+# NN3 = [10000]
 # NN3 = [15,20,25]
 # NN3 = [15,45,75]
 # N3 = N+N2
-N3 = 4000
+# N3 = 4000
 # NN3 = [45]
 # Pw = np.linspace(0.1, 1, 10)
 # Pw = np.linspace(0.01, 0.1, 10)
@@ -87,11 +87,11 @@ thre1 = 1e-9
 thre2 = 1e-2
 thre3 = 0.05
 
-epsilon = 1 # WD=1 for noisy case
+epsilon = stopThr # WD=1 for noisy case
         
 Is_fig = 0
 Is_info = 0
-Is_fea_noise = 1
+Is_fea_noise = 0
 Is_str_noise = 0
 
 Num = 500 # number of repeats (generate a random graph and a query)
@@ -104,9 +104,9 @@ str_metric = 'adj'
 loss_fun='square_loss'
 # loss_fun = 'kl_loss'
 
-mean_fea = 0 # mean of Gaussian 
-# std_fea = 0.1 # std of Gaussian
-STD_FEA = np.arange(0, 0.5, 0.05).tolist()
+mean_fea = 0 # mean of Gaussian
+std_fea = 0.1 # std of Gaussian
+# STD_FEA = np.arange(0, 0.5, 0.05).tolist()
 
 str_mean = 0
 str_std = 0
@@ -296,7 +296,7 @@ STD = []
 Lower = []
 Upper = []
 
-for std_fea in STD_FEA:
+for N3 in NN3:
     num = 0
 
     #%% save data for all iterations
@@ -352,7 +352,9 @@ for std_fea in STD_FEA:
         if Is_fea_noise or Is_str_noise:
             g2_nodummy = add_noise_to_query(g2_nodummy_clean, fea_metric=fea_metric, mean_fea = mean_fea, std_fea = std_fea, str_mean= str_mean, str_std= str_std,
                                    Is_fea_noise=Is_fea_noise, Is_str_noise=Is_str_noise)            
-        
+        else:
+            g2_nodummy = g2_nodummy_clean
+            
         G2_nodummy = Graph(g2_nodummy)
         
         #%% only allow the query is connected
@@ -773,9 +775,9 @@ for std_fea in STD_FEA:
 # ax.boxplot(DFGW_set, showfliers=False, showmeans=False)
 # %% plot mean and STD
 plt.figure()
-plt.plot(np.array(STD_FEA), np.array(Mean), 'b-+')
+plt.plot(np.array(NN3), np.array(Mean), 'b-+')
 # plt.fill_between(np.array(NumFea), np.array(Mean)-np.array(STD), np.array(Mean)+np.array(STD), alpha=0.5) # alpha here is transparency
-plt.fill_between(np.array(STD_FEA), np.array(Lower), np.array(Upper), facecolor = 'b',alpha=0.5) # NumFea here is transparency
+plt.fill_between(np.array(NN3), np.array(Lower), np.array(Upper), facecolor = 'b',alpha=0.5) # NumFea here is transparency
 plt.grid()
 plt.xlabel('Size of test graph')
 # plt.xlabel('Number of features')
@@ -787,10 +789,10 @@ plt.ylabel('Mean and 95% confidence interval')
 
 # %% plot percentage
 plt.figure()
-plt.plot(np.array(STD_FEA), np.array(Percent1),'-x', color = 'tab:green', label='m='+str(N)+', nFGWD <'+str(thre1))
+plt.plot(np.array(NN3), np.array(Percent1),'-x', color = 'tab:green', label='m='+str(N)+', nFGWD <'+str(thre1))
 # plt.plot(np.array(NumFea), np.array(Percent2),'r--.', label='FGWD < ' +str(thre2) +'(approx match)')
-plt.plot(np.array(STD_FEA), np.array(Percent4),'--.', color = 'tab:orange', label='m='+str(N)+', nFGWD < ' +str(thre3) )
-plt.plot(np.array(STD_FEA), np.array(Percent3),'-+', color = 'b', label='exact matching')
+plt.plot(np.array(NN3), np.array(Percent4),'--.', color = 'tab:orange', label='m='+str(N)+', nFGWD < ' +str(thre3) )
+plt.plot(np.array(NN3), np.array(Percent3),'-+', color = 'b', label='exact matching')
 plt.grid()
 plt.legend()
 plt.xlabel('Size of test graph')
@@ -803,7 +805,7 @@ plt.ylabel('Success rate')
 
 # %% plot time
 plt.figure()
-plt.plot(np.array(STD_FEA), np.array(Time),'b-+')
+plt.plot(np.array(NN3), np.array(Time),'b-+')
 plt.grid()
 plt.xlabel('Size of test graph')
 # plt.xlabel('Number of features')

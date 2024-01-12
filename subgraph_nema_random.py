@@ -172,12 +172,12 @@ N = 5  # nodes in query
 # NN3 = [15,20,25,35,45,55,65,75,85,95]
 # NN3 = [15]
 # NN3 = [20,50,100,200,300,400,500]
-# NN3 = [50, 100, 1000, 3000, 5000, 7000, 10000]
+NN3 = [50, 100, 300, 500, 700, 1000, 3000, 5000, 7000, 10000]
 # NN3 = [20,50,100,500,1000,2000,3000]
 # NN3 = [15,20,25]
 # NN3 = [15,45,75]
 # N3 = N+N2
-N3 = 4000
+# N3 = 4000
 # NN3 = [45]
 # Pw = np.linspace(0.1, 1, 10)
 # Pw = np.linspace(0.01, 0.1, 10)
@@ -211,11 +211,10 @@ thre1 = 1e-9
 # thre2=-0.015000 # entropic
 thre2 = 1e-2
 thre3 = 0.05
-epsilon = thre1
         
 Is_fig = 0
 Is_info = 0
-Is_fea_noise = 1
+Is_fea_noise = 0  # 0 for clean query 
 Is_str_noise = 0
 
 Num = 500  # number of repeats (generate a random graph and a query)
@@ -232,8 +231,8 @@ alpha1 = 0
 alpha2 = 0.5
 
 mean_fea = 0 # mean of Gaussian 
-# std_fea = 0.1 # std of Gaussian
-STD_FEA = np.arange(0, 0.5, 0.05).tolist()
+std_fea = 0.1 # std of Gaussian
+# STD_FEA = np.arange(0, 0.5, 0.05).tolist()
 
 str_mean = 0
 str_std = 0
@@ -395,7 +394,8 @@ def random_string(length):
 # target_labels = query_labels + [random.choice(query_labels) for _ in range(100-5)]
 # target_labels = ['guardians', 'groot', 'star', 'guardians2']
 
-Eps = 1 # set as 1 for noisy case 
+Eps = 1e-9
+# Eps = 1 # set as 1 for noisy case; 1e-9 for clean case 
 
 # missing_files_count = 0
 # Cost = np.zeros(NumQ)
@@ -415,7 +415,7 @@ Rate1_subopt_set = []
 Rate2_subopt_set = []
 Rate3_subopt_set = []
 
-for std_fea in STD_FEA:
+for N3 in NN3:
     
     num = 0
     
@@ -462,6 +462,9 @@ for std_fea in STD_FEA:
             g2_nodummy = add_noise_to_query(g2_nodummy_clean, fea_metric=fea_metric, mean_fea = mean_fea, std_fea = std_fea, str_mean= str_mean, str_std= str_std,
                                    Is_fea_noise=Is_fea_noise, Is_str_noise=Is_str_noise)            
         
+        else:
+            g2_nodummy = g2_nodummy_clean
+            
         G2_nodummy = Graph(g2_nodummy)
         
         #%% only allow the query is connected
@@ -652,8 +655,6 @@ for std_fea in STD_FEA:
             scores = scores.replace(0, small_value)
             
             # create a boolean mask
-            # epsilon = 1e-1 # for noisy query
-            # epsilon = 1e-9 # for clean query
             epsilon = Eps
             mask = scores > 1-epsilon
             # mask = scores > 0
