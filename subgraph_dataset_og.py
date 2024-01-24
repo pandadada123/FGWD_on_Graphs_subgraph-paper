@@ -45,7 +45,7 @@ thre1 = stopThr
 thre2 = 1e-2 # results not recorded
 # thre3 = 0.05
 # epsilon = thre1
-        
+
 Is_fig = 0
 Is_info = 0
 Is_create_query = 0
@@ -58,18 +58,18 @@ Is_check_transp = 1 # check the ratio of correct nodes
 Is_fea_noise = 0
 Is_str_noise = 0
 
-Num = 1 # number of repeats (generate a random graph and a query)
+# Num = 1 # number of repeats (generate a random graph and a query)
 # fea_metric = 'dirac'
 # fea_metric = 'hamming'
-# fea_metric = 'sqeuclidean'
-fea_metric = 'jaccard'
+fea_metric = 'sqeuclidean'
+# fea_metric = 'jaccard'
 # str_metric = 'shortest_path'  # remember to change lib0 and cost matrix
 str_metric = 'adj'
 
 alpha = 0.5
 
 mean_fea = 1 # number of nodes that has been changed
-std_fea = 1 # zero mean Gaussian
+std_fea = 0.5 # zero mean Gaussian
 # str_mean = 0
 # str_std = 0.1
 NumQ_for_each_graph = 10
@@ -93,22 +93,22 @@ Upper = []
 # dataset_n='aids'
 # dataset_n='ptc'   # color is not a tuple
 # dataset_n='cox2'
-# dataset_n='bzr'
+dataset_n='bzr'
 # dataset_n ='firstmm'
 
-# dataset_name = 'BZR'
+dataset_name = 'BZR'
 # dataset_name = 'FIRSTMM_DB'
 # dataset_name = 'deezer_europe'
-dataset_name = 'lastfm_asia'
+# dataset_name = 'lastfm_asia'
 
 # path='/home/pan/dataset/data/'
 path='E:/Master Thesis/dataset/data/'
 # X is consisted of graph objects
-# X,label=load_local_data(path,dataset_n,wl=0) # using the "wl" option that computes the Weisfeler-Lehman features for each nodes as shown is the notebook wl_labeling.ipynb
+X,label=load_local_data(path,dataset_n,wl=0) # using the "wl" option that computes the Weisfeler-Lehman features for each nodes as shown is the notebook wl_labeling.ipynb
 # we do not use WL labeling 
 # x=X[2]
 # X = np.load('E:/Master Thesis/dataset/data/'+dataset_name+'/X_deezer.npy', allow_pickle=True)
-X = np.load('E:/Master Thesis/dataset/data/'+dataset_name+'/X_lastfm.npy', allow_pickle=True)
+# X = np.load('E:/Master Thesis/dataset/data/'+dataset_name+'/X_lastfm.npy', allow_pickle=True)
 
 plt.close("all")
 

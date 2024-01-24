@@ -43,7 +43,6 @@ N = 5  # nodes in subgraph
 # NN3 = [20,50,100,200,300,400,500]
 # NN3 = [20,50,100,500,1000,2000,3000]
 NN3 = [50, 100, 300, 500, 700, 1000, 3000, 5000, 7000, 10000]
-# NN3 = [7000]
 # N3 = N+N2
 # N3 = 4000
 # NN3 = [80]
@@ -82,7 +81,7 @@ Is_info = 0
 Is_fea_noise = 0 # 0 for clean query 
 Is_str_noise = 0
 
-Num = 500 # number of repeats (generate a random graph and a query)
+Num = 2 # number of repeats (generate a random graph and a query)
 # fea_metric = 'dirac'
 # fea_metric = 'hamming'
 fea_metric = 'sqeuclidean'

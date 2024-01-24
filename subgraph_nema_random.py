@@ -464,7 +464,6 @@ for N3 in NN3:
         
         else:
             g2_nodummy = g2_nodummy_clean
-            
         G2_nodummy = Graph(g2_nodummy)
         
         #%% only allow the query is connected
