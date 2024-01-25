@@ -34,8 +34,6 @@ import scipy.stats as st
 import dill as pickle
 import time 
 
-
-
 N=6
 
 stopThr = 1e-09
@@ -61,15 +59,15 @@ Is_str_noise = 0
 Num = 1 # number of repeats (generate a random graph and a query)
 # fea_metric = 'dirac'
 # fea_metric = 'hamming'
-# fea_metric = 'sqeuclidean'
-fea_metric = 'jaccard'
+fea_metric = 'sqeuclidean'
+# fea_metric = 'jaccard'
 # str_metric = 'shortest_path'  # remember to change lib0 and cost matrix
 str_metric = 'adj'
 
 alpha = 0.5
 
 mean_fea = 1 # number of nodes that has been changed
-std_fea = 1 # zero mean Gaussian
+std_fea = 0.1 # zero mean Gaussian
 # str_mean = 0
 # str_std = 0.1
 NumQ_for_each_graph = 10
@@ -93,93 +91,28 @@ Upper = []
 # dataset_n='aids'
 # dataset_n='ptc'   # color is not a tuple
 # dataset_n='cox2'
-# dataset_n='bzr'
+dataset_n='bzr'
 # dataset_n ='firstmm'
 
-# dataset_name = 'BZR'
+dataset_name = 'BZR'
 # dataset_name = 'FIRSTMM_DB'
 # dataset_name = 'deezer_europe'
-dataset_name = 'lastfm_asia'
+# dataset_name = 'lastfm_asia'
 
 # path='/home/pan/dataset/data/'
 path='E:/Master Thesis/dataset/data/'
 # X is consisted of graph objects
-# X,label=load_local_data(path,dataset_n,wl=0) # using the "wl" option that computes the Weisfeler-Lehman features for each nodes as shown is the notebook wl_labeling.ipynb
+X,label=load_local_data(path,dataset_n,wl=0) # using the "wl" option that computes the Weisfeler-Lehman features for each nodes as shown is the notebook wl_labeling.ipynb
 # we do not use WL labeling 
 # x=X[2]
 # X = np.load('E:/Master Thesis/dataset/data/'+dataset_name+'/X_deezer.npy', allow_pickle=True)
-X = np.load('E:/Master Thesis/dataset/data/'+dataset_name+'/X_lastfm.npy', allow_pickle=True)
+# X = np.load('E:/Master Thesis/dataset/data/'+dataset_name+'/X_lastfm.npy', allow_pickle=True)
 
 plt.close("all")
 
 NumG = len(X) # Number of graphs
 # NumQ = NumG # Number of query graphs
 # NumQ = 1
-
-#%% add noise to the query
-def add_noise_to_query(g,mean_fea,std_fea,str_mean,str_std,
-                       Is_fea_noise,Is_str_noise):    
-    if Is_fea_noise: # Add label noise
-        selected_nodes = random.sample(g.nodes(), mean_fea)
-        
-        if fea_metric == 'jaccard':
-            for node in selected_nodes:
-                current_string = g.nodes[node]['attr_name']
-                # Convert the input string to a list of Unicode code points
-                code_points = [ord(char) for char in current_string]
-            
-                # Apply Gaussian noise to each code point
-                noisy_code_points = [
-                    int(round(code + np.random.normal(0, std_fea)))
-                    for code in code_points
-                ]
-            
-                # Ensure that code points are within valid Unicode range (32 to 126)
-                noisy_code_points = [
-                    min(max(code, 32), 126)
-                    for code in noisy_code_points
-                ]
-            
-                # Convert the noisy code points back to a string
-                noisy_string = ''.join([chr(code) for code in noisy_code_points])
-                
-                g.nodes[node]['attr_name'] = noisy_string
-
-        elif fea_metric == 'dirac':
-            for node in selected_nodes:
-                current_value = g.nodes[node]['attr_name']
-                noise = np.random.normal(0, std_fea)
-                new_value = current_value + noise
-                g.nodes[node]['attr_name'] = round(new_value)  # still int value
-        
-        elif fea_metric == 'sqeuclidean': # real value
-            for node in selected_nodes:
-                current_value = g.nodes[node]['attr_name']
-                noise = [np.random.normal(0, std_fea) for _ in range(len(current_value))]
-                new_value = [x + y for x, y in zip(current_value, noise)]
-                g.nodes[node]['attr_name'] = new_value  
-                
-    if Is_str_noise: # Add structural noise
-        # Generate random values for edge insertions and deletions
-        num_insertions = max(0, int(np.random.normal(str_mean/2, str_std)))
-        num_deletions = max(0, int(np.random.normal(str_mean/2, str_std)))
-        
-        # Structural noise: Edge insertions
-        for _ in range(num_insertions):
-            node1, node2 = random.sample(g.nodes(), 2)
-            if not g.has_edge(node1, node2):
-                g.add_edge(node1, node2)
-        
-        # Structural noise: Edge deletions
-        for _ in range(num_deletions):
-            edges = list(g.edges())
-            if edges:
-                edge_to_delete = random.choice(edges)
-                g.remove_edge(*edge_to_delete)
-                
-    return g
-
-#%% create connected subgraphs/query graphs
 
 # num = 0
 yes1 = 0
@@ -226,7 +159,7 @@ for num in range(NumG):
         with open(file_path_1, 'rb') as file1:
                 g2_nodummy_original = pickle.load(file1)
         
-        folder_path_2 = "E:\\Master Thesis\\dataset\\data\\"+dataset_name+"\\query_noise_fea_"+str(mean_fea)+"_"+str(std_fea)
+        folder_path_2 = "E:\\Master Thesis\\dataset\\data\\"+dataset_name+"\\query_noise_fea_"+str(mean_fea)+"_"+str(std_fea)+"_all"
         file_path_2 = os.path.join(folder_path_2, file_name)
         with open(file_path_2, 'rb') as file2:
                 g2_nodummy = pickle.load(file2)

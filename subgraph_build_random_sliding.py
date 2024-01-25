@@ -47,7 +47,7 @@ N = 5  # nodes in query
 # NN3 = [15,20,25]
 # NN3 = [15,45,75]
 # N3 = N+N2
-N3 = 4000
+N3 = 100
 # NN3 = [45]
 # Pw = np.linspace(0.1, 1, 10)
 # Pw = np.linspace(0.01, 0.1, 10)
@@ -104,9 +104,11 @@ str_metric = 'adj'
 loss_fun='square_loss'
 # loss_fun = 'kl_loss'
 
+NumNoisy = N
 mean_fea = 0 # mean of Gaussian 
 # std_fea = 0.1 # std of Gaussian
-STD_FEA = np.arange(0, 0.5, 0.05).tolist()
+# STD_FEA = np.arange(0, 0.5, 0.05).tolist()
+STD_FEA = np.arange(0, 0.1, 0.01).tolist()
 
 str_mean = 0
 str_std = 0
@@ -154,10 +156,11 @@ def build_comunity_graph(N=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
         # v=np.int_(np.floor(v)) # discrete attributes
         # Fea = np.linspace(0,20,numfea)
         # Fea = list(range(0, numfea))
-        Fea = [i / (numfea - 1) for i in range(numfea)]
+        # Fea = [i / (numfea - 1) for i in range(numfea)]
         for i in range(N):
             # g.add_one_attribute(i,v[i])
-            fea = random.choice(Fea)
+            # fea = random.choice(Fea)
+            fea = random.random()
             g.add_one_attribute(i, fea)
             for j in range(i,N): # include the possibility of self-loop 
             # for j in range(i+1, N):
@@ -196,10 +199,11 @@ def build_G1(G, N2=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
     
     if fea_metric == 'dirac' or fea_metric == 'sqeuclidean':
         # Fea = list(range(0, numfea))
-        Fea = [i / (numfea - 1) for i in range(numfea)]
+        # Fea = [i / (numfea - 1) for i in range(numfea)]
         for i in range(L, NN):
             # G.add_one_attribute(i,v[i-L])
-            fea = random.choice(Fea)
+            # fea = random.choice(Fea)
+            fea = random.random()
             G.add_one_attribute(i, fea)
             
     elif fea_metric == 'jaccard':
@@ -225,56 +229,52 @@ def build_G1(G, N2=30, numfea=3, pw=0.5, fea_metric= 'dirac'):
     return G
     
 #%% add noise to the query
-def add_noise_to_query(g_clean,fea_metric,
-                       mean_fea,std_fea,str_mean,str_std,
-                       Is_fea_noise,Is_str_noise):    
-    
+def add_noise_to_query(g_clean, fea_metric, mean_fea, std_fea, str_mean, str_std, Is_fea_noise, Is_str_noise, NumNoisy):    
     g = copy.deepcopy(g_clean)
-                
-    if Is_fea_noise:  # Add label noise
-        # Randomly pick one node
-        random_node = random.choice(list(g.nodes()))
 
-        if fea_metric == 'jaccard':
-            current_string = g.nodes[random_node]['attr_name']
-            # Convert the input string to a list of Unicode code points
-            code_points = [ord(char) for char in current_string]
-        
-            # Apply Gaussian noise to each code point
-            noisy_code_points = [
-                int(round(code + np.random.normal(mean_fea, std_fea)))
-                for code in code_points
-            ]
-        
-            # Ensure that code points are within valid Unicode range (32 to 126)
-            noisy_code_points = [
-                min(max(code, 32), 126)
-                for code in noisy_code_points
-            ]
-        
-            # Convert the noisy code points back to a string
-            noisy_string = ''.join([chr(code) for code in noisy_code_points])
-            
-            g.nodes[random_node]['attr_name'] = noisy_string
-    
-        elif fea_metric == 'dirac' or fea_metric == 'sqeuclidean':
-            current_value = g.nodes[random_node]['attr_name']
-            noise = np.random.normal(mean_fea, std_fea)
-            new_value = current_value + noise
-            # g.nodes[random_node]['attr_name'] = round(new_value)  # still int value
-            g.nodes[random_node]['attr_name'] = new_value
-        
-    if Is_str_noise: # Add structural noise
+    if Is_fea_noise:
+        # Randomly pick NumNoisy nodes
+        random_nodes = random.sample(g.nodes(), min(NumNoisy, len(g.nodes())))
+
+        for random_node in random_nodes:
+            if fea_metric == 'jaccard':
+                current_string = g.nodes[random_node]['attr_name']
+                # Convert the input string to a list of Unicode code points
+                code_points = [ord(char) for char in current_string]
+
+                # Apply Gaussian noise to each code point
+                noisy_code_points = [
+                    int(round(code + np.random.normal(mean_fea, std_fea)))
+                    for code in code_points
+                ]
+
+                # Ensure that code points are within valid Unicode range (32 to 126)
+                noisy_code_points = [
+                    min(max(code, 32), 126)
+                    for code in noisy_code_points
+                ]
+
+                # Convert the noisy code points back to a string
+                noisy_string = ''.join([chr(code) for code in noisy_code_points])
+                g.nodes[random_node]['attr_name'] = noisy_string
+
+            elif fea_metric == 'dirac' or fea_metric == 'sqeuclidean':
+                current_value = g.nodes[random_node]['attr_name']
+                noise = np.random.normal(mean_fea, std_fea)
+                new_value = current_value + noise
+                g.nodes[random_node]['attr_name'] = new_value
+
+    if Is_str_noise:
         # Generate random values for edge insertions and deletions
         num_insertions = max(0, int(np.random.normal(str_mean/2, str_std)))
         num_deletions = max(0, int(np.random.normal(str_mean/2, str_std)))
-        
+
         # Structural noise: Edge insertions
         for _ in range(num_insertions):
             node1, node2 = random.sample(g.nodes(), 2)
             if not g.has_edge(node1, node2):
                 g.add_edge(node1, node2)
-        
+
         # Structural noise: Edge deletions
         for _ in range(num_deletions):
             edges = list(g.edges())
@@ -351,7 +351,7 @@ for std_fea in STD_FEA:
         #%% add noise to query
         if Is_fea_noise or Is_str_noise:
             g2_nodummy = add_noise_to_query(g2_nodummy_clean, fea_metric=fea_metric, mean_fea = mean_fea, std_fea = std_fea, str_mean= str_mean, str_std= str_std,
-                                   Is_fea_noise=Is_fea_noise, Is_str_noise=Is_str_noise)            
+                                   Is_fea_noise=Is_fea_noise, Is_str_noise=Is_str_noise, NumNoisy = NumNoisy)            
         
         G2_nodummy = Graph(g2_nodummy)
         

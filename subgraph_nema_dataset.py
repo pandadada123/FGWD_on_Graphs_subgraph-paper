@@ -165,17 +165,17 @@ from sqlalchemy import text
 # dataset_n='aids'
 # dataset_n='ptc'   # color is not a tuple
 # dataset_n='cox2'
-# dataset_n='bzr'
+dataset_n='bzr'
 # dataset_n ='firstmm'
 
-# dataset_name = 'BZR'
+dataset_name = 'BZR'
 # dataset_name = 'FIRSTMM_DB'
-dataset_name = 'deezer_europe'
+# dataset_name = 'deezer_europe'
 # dataset_name = 'lastfm_asia'
 
 path='E:/Master Thesis/dataset/data/'
-# X,label=load_local_data(path,dataset_n,wl=0) 
-X = np.load('E:/Master Thesis/dataset/data/'+dataset_name+'/X_deezer.npy', allow_pickle=True)
+X,label=load_local_data(path,dataset_n,wl=0) 
+# X = np.load('E:/Master Thesis/dataset/data/'+dataset_name+'/X_deezer.npy', allow_pickle=True)
 # X = np.load('E:/Master Thesis/dataset/data/'+dataset_name+'/X_lastfm.npy', allow_pickle=True)
 
 NumG = len(X)
@@ -188,7 +188,7 @@ NumQ_for_each_graph = 10
 Is_create_query = 0
 
 mean_fea = 1 # number of nodes that has been changed
-std_fea = 1 # zero mean Gaussian
+std_fea = 0.1 # zero mean Gaussian
 # str_mean = 0
 # str_std = 0.1
 # Generate a random string of given length
@@ -317,7 +317,7 @@ for num in range(NumG):
             query_edges_original = list(g2_nodummy_original.edges())
             
             # noisy
-            folder_path_2 = "E:\\Master Thesis\\dataset\\data\\"+dataset_name+"\\query_noise_fea_"+str(mean_fea)+"_"+str(std_fea)
+            folder_path_2 = "E:\\Master Thesis\\dataset\\data\\"+dataset_name+"\\query_noise_fea_"+str(mean_fea)+"_"+str(std_fea)+"_all"
             file_path_2 = os.path.join(folder_path_2, file_name)
             with open(file_path_2, 'rb') as file2:
                     g2_nodummy = pickle.load(file2)
