@@ -165,11 +165,11 @@ from sqlalchemy import text
 # dataset_n='aids'
 # dataset_n='ptc'   # color is not a tuple
 # dataset_n='cox2'
-dataset_n='bzr'
-# dataset_n ='firstmm'
+# dataset_n='bzr'
+dataset_n ='firstmm'
 
-dataset_name = 'BZR'
-# dataset_name = 'FIRSTMM_DB'
+# dataset_name = 'BZR'
+dataset_name = 'FIRSTMM_DB'
 # dataset_name = 'deezer_europe'
 # dataset_name = 'lastfm_asia'
 
@@ -179,16 +179,18 @@ X,label=load_local_data(path,dataset_n,wl=0)
 # X = np.load('E:/Master Thesis/dataset/data/'+dataset_name+'/X_lastfm.npy', allow_pickle=True)
 
 NumG = len(X)
+# NumG = 1
 
 N = 6 # size of query
 # NumQ = NumG
 # NumQ=5
 NumQ_for_each_graph = 10
+# NumQ_for_each_graph = 1
 
 Is_create_query = 0
 
 mean_fea = 1 # number of nodes that has been changed
-std_fea = 0.5 # zero mean Gaussian
+std_fea = 0.1 # zero mean Gaussian
 # str_mean = 0
 # str_std = 0.1
 # Generate a random string of given length
@@ -201,8 +203,18 @@ def random_string(length):
 # target_labels = query_labels + [random.choice(query_labels) for _ in range(100-5)]
 # target_labels = ['guardians', 'groot', 'star', 'guardians2']
 
-Eps = 1.0 # threshold for feature cost function
+# values = [1e-9,5e-9,1e-8,5e-8,1e-7,5e-7,1e-6,5e-6,
+#                  1e-5,5e-5,1e-4,5e-4,1e-3,5e-3,1e-2,5e-2,
+#                  1e-1,5e-1,1.0]
+# values = [1e-9]
+        
+Eps = 0.1 # threshold for feature cost function
 
+
+# Result_list = []
+# Info_list = []
+# for Eps in values:
+    
 missing_files_count = 0
 # Cost =np.zeros(NumQ)
 # Ratio = np.zeros(NumQ)
@@ -222,6 +234,7 @@ Time_total_2 = np.zeros((NumG,NumQ_for_each_graph))
 Index = np.zeros((NumG,NumQ_for_each_graph))
 
 for num in range(NumG):
+# for num in range(5,6):
     print("num=",num)
     
     for numq in range(NumQ_for_each_graph):
@@ -319,7 +332,7 @@ for num in range(NumG):
             query_edges_original = list(g2_nodummy_original.edges())
             
             # noisy
-            folder_path_2 = "E:\\Master Thesis\\dataset\\data\\"+dataset_name+"\\query_noise_fea_"+str(mean_fea)+"_"+str(std_fea)
+            folder_path_2 = "E:\\Master Thesis\\dataset\\data\\"+dataset_name+"\\query_noise_fea_"+str(mean_fea)+"_"+str(std_fea)+"_all"
             file_path_2 = os.path.join(folder_path_2, file_name)
             with open(file_path_2, 'rb') as file2:
                     g2_nodummy = pickle.load(file2)
@@ -570,7 +583,7 @@ for num in range(NumG):
         
             
         try:
-            with fornax.Connection('sqlite:///mydb7.sqlite') as conn:
+            with fornax.Connection('sqlite:///mydb1.sqlite') as conn:
                 target_graph = fornax.GraphHandle.create(conn)
                 target_graph.add_nodes(
                     # use id_src to set a custom id on each node 
@@ -590,7 +603,7 @@ for num in range(NumG):
             # In[11]:
             
             
-            with fornax.Connection('sqlite:///mydb7.sqlite') as conn:
+            with fornax.Connection('sqlite:///mydb1.sqlite') as conn:
                 target_graph.graph_id
                 another_target_graph_handle = fornax.GraphHandle.read(conn, target_graph.graph_id)
                 print(another_target_graph_handle == target_graph)
@@ -605,7 +618,7 @@ for num in range(NumG):
             # In[12]:
             
             
-            with fornax.Connection('sqlite:///mydb7.sqlite') as conn:
+            with fornax.Connection('sqlite:///mydb1.sqlite') as conn:
                 # create a new graph
                 query_graph = fornax.GraphHandle.create(conn)
             
@@ -654,7 +667,7 @@ for num in range(NumG):
             # In[13]:
             
             
-            with fornax.Connection('sqlite:///mydb7.sqlite') as conn:
+            with fornax.Connection('sqlite:///mydb1.sqlite') as conn:
                 query = fornax.QueryHandle.create(conn, query_graph, target_graph)
                 query.add_matches(matches['query_id'], matches['target_id'], matches['score'])
                 
@@ -667,7 +680,7 @@ for num in range(NumG):
             # In[14]:
             
             
-            with fornax.Connection('sqlite:///mydb7.sqlite') as conn:
+            with fornax.Connection('sqlite:///mydb1.sqlite') as conn:
                 
                 start_time = time.time()
                 results = query.execute(n=1, hopping_distance=1)  # top-n results
@@ -785,7 +798,7 @@ for num in range(NumG):
                 #%% Success rate
                 edgelist_B = [(e['source'], e['target']) for e in graph['links'] if e['type'] == 'target']
                 labels_B = {node['id']: node['label'] for node in graph['nodes'] if node['type'] == 'target'} # dict of target id and target features 
-
+    
                 # Convert data to graphs
                 g3 = nx.Graph()
                 g3.add_edges_from(edgelist_B)
@@ -814,7 +827,7 @@ for num in range(NumG):
             print('time_total_2', Time_total_2[num,numq])
             
             
-            with fornax.Connection('sqlite:///mydb7.sqlite') as conn:  # introduce connection first 
+            with fornax.Connection('sqlite:///mydb1.sqlite') as conn:  # introduce connection first 
                 # cursor = conn.cursor()
                 
                 # cursor.execute('DELETE FROM graphs')
@@ -840,21 +853,23 @@ for num in range(NumG):
             Time_total_2[num,numq] = np.nan
             Cost[num,numq] = np.nan
             
-            with fornax.Connection('sqlite:///mydb7.sqlite') as conn:  # introduce connection first 
-                # cursor = conn.cursor()
-                
-                # cursor.execute('DELETE FROM graphs')
-                # query.delete()
-                target_graph.delete()
-                # query_graph.delete()
-                # fornax.conn.close()    
-                # conn.commit()
-                sql_statement = text(f'DELETE FROM match;')
-                conn.session.execute(sql_statement)
-                conn.session.commit()
-                
-                conn.close()
-                
+            # try:
+            #     with fornax.Connection('sqlite:///mydb1.sqlite') as conn:  # introduce connection first 
+            #         # cursor = conn.cursor()
+                    
+            #         # cursor.execute('DELETE FROM graphs')
+            #         # query.delete()
+            #         target_graph.delete()
+            #         # query_graph.delete()
+            #         # fornax.conn.close()    
+            #         # conn.commit()
+            #         sql_statement = text(f'DELETE FROM match;')
+            #         conn.session.execute(sql_statement)
+            #         conn.session.commit()
+                    
+            #         conn.close()
+            # except:
+            #     print("no graph in the database")
 #%% 
 # file_path_1 = "E:/Master Thesis/results/nema/Ratio.npy"
 # file_path_2 = "E:/Master Thesis/results/nema/Time.npy"
@@ -884,7 +899,23 @@ print('Time_total_new', np.nanmean(Time_total_2))
 
 print('cost_mean', np.nanmean(Cost / N))
 print('cost_std', np.nanstd(Cost / N))
-
+    
+    
+    # results_list = [
+    #     ("Success Rate", np.sum(Index) / Index.size),
+    #     ("Correct Nodes Ratio", np.nanmean(Ratio)),
+    #     ("Time Execute", np.nanmean(Time_execute)),
+    #     ("Time Match", np.nanmean(Time_match)),
+    #     ("Time Opt", np.nanmean(Time_opt)),
+    #     ("Time Total", np.nanmean(Time_total)),
+    #     ("Time Total New", np.nanmean(Time_total_2)),
+    #     ("Cost Mean", np.nanmean(Cost / N)),
+    #     ("Cost Std", np.nanstd(Cost / N))
+    # ]
+    
+    # Result_list.append(results_list)
+    
+    # Info_list.append([np.sum(Index)/Index.size, np.nanmean(Time_total_2)])
     #%%
     
         

@@ -39,7 +39,6 @@ import time
 N=6
 
 stopThr = 1e-09
-
 thre1 = stopThr
 # thre2=-0.015000 # entropic
 thre2 = 1e-2 # results not recorded
@@ -68,8 +67,8 @@ str_metric = 'adj'
 
 alpha = 0.5
 
-mean_fea = 1 # number of nodes that has been changed
-std_fea = 0.5 # zero mean Gaussian
+mean_fea = 0 # number of nodes that has been changed
+std_fea = 0 # zero mean Gaussian
 # str_mean = 0
 # str_std = 0.1
 NumQ_for_each_graph = 10
@@ -93,11 +92,11 @@ Upper = []
 # dataset_n='aids'
 # dataset_n='ptc'   # color is not a tuple
 # dataset_n='cox2'
-dataset_n='bzr'
-# dataset_n ='firstmm'
+# dataset_n='bzr'
+dataset_n ='firstmm'
 
-dataset_name = 'BZR'
-# dataset_name = 'FIRSTMM_DB'
+# dataset_name = 'BZR'
+dataset_name = 'FIRSTMM_DB'
 # dataset_name = 'deezer_europe'
 # dataset_name = 'lastfm_asia'
 
@@ -226,7 +225,7 @@ for num in range(NumG):
         with open(file_path_1, 'rb') as file1:
                 g2_nodummy_original = pickle.load(file1)
         
-        folder_path_2 = "E:\\Master Thesis\\dataset\\data\\"+dataset_name+"\\query_noise_fea_"+str(mean_fea)+"_"+str(std_fea)
+        folder_path_2 = "E:\\Master Thesis\\dataset\\data\\"+dataset_name+"\\query_noise_fea_"+str(mean_fea)+"_"+str(std_fea)+"_all"
         file_path_2 = os.path.join(folder_path_2, file_name)
         with open(file_path_2, 'rb') as file2:
                 g2_nodummy = pickle.load(file2)
